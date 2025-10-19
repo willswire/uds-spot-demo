@@ -1,0 +1,26 @@
+# Terraform state files
+*.tfstate
+*.tfstate.*backup
+*tfstate.lock.info
+
+# Terraform local configuration and downloaded modules
+.terraform/
+
+# Terraform variable definition files that might contain sensitive data
+*.tfvars
+*.tfvars.json
+
+# Terraform crash log files
+crash.log
+
+# Terraform CLI configuration files
+.terraformrc
+terraform.rc
+
+# macOS users are dumb
+.DS_Store
+tmp
+
+# UDS Bundles and Packages
+uds-*.tar.zst
+zarf-*.tar.zst
