@@ -143,6 +143,12 @@ packages:
               path: "themeCustomizations.termsAndConditions.text.inline"
               default: ""
           values:
+            # Rackspace Spot's block storage requires volumes between 5-20 GB
+            # See https://spot.rackspace.com/docs/en/persistent-volumes for more detail
+            - path: persistence.themes.size
+              value: 5Gi
+            - path: persistence.data.size
+              value: 5Gi
             - path: detailedObservability.alerts.enabled
               value: true
             - path: realmInitEnv
