@@ -4,11 +4,11 @@ Provision a Kubernetes cluster on [Rackspace Spot](https://spot.rackspace.com) u
 
 ## What Gets Created
 
-| Resource | Configuration |
-|----------|---------------|
+| Resource   | Configuration |
+|------------|---------------|
 | Cloudspace | Single control plane, Calico CNI, `us-central-dfw-1` |
-| Node Pool | `gp.vs1.xlarge-dfw` spot instances, 3-5 nodes (autoscaling) |
-| Budget | ~$10/day across all nodes |
+| Node Pool  | `gp.vs1.xlarge-dfw` spot instances, 3-5 nodes (autoscaling) |
+| Budget     | ~$10/day across all nodes |
 
 ## Setup
 
