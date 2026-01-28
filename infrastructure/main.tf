@@ -1,49 +1,42 @@
 locals {
-  hours_per_month = 730
-  min_nodes       = 3 # Minimum required for HA workloads
-
-  # Minimum budget required: 3 nodes × $0.01/hr × 730 hrs = $21.90
-  min_budget = local.min_nodes * 0.01 * local.hours_per_month
-
   # Gen-2 General Purpose minimum bid prices (from Rackspace Spot docs)
   # https://spot.rackspace.com/docs/en/cloud-servers
   min_bid_prices = {
-    "gp.vs2.medium-dfw2"  = 0.01
     "gp.vs2.large-dfw2"   = 0.04
     "gp.vs2.xlarge-dfw2"  = 0.08
     "gp.vs2.2xlarge-dfw2" = 0.15
   }
 
-  # For each class, calculate config with minimum bid price constraint
+  # For each class, get specs and calculate effective hourly rate
   class_configs = {
     for name, sc in data.spot_serverclass.candidates : name => {
-      server_class  = name
-      hourly_rate   = tonumber(sc.status.spot_pricing.market_price_per_hour)
-      min_bid_price = local.min_bid_prices[name]
-      vcpus         = tonumber(sc.resources.cpu)
-      memory_gib    = tonumber(trimsuffix(sc.resources.memory, "GB"))
+      server_class = name
+      hourly_rate  = max(local.min_bid_prices[name], tonumber(sc.status.spot_pricing.market_price_per_hour))
+      vcpus        = tonumber(sc.resources.cpu)
     }
   }
 
-  # Calculate node counts and filter to valid configs
-  # A config is valid if we can afford min_nodes at the minimum bid price
+  # Filter to classes affordable within daily budget (24 hrs × 3 nodes for HA)
+  hours_per_day = 24
+  node_count    = 3
   valid_configs = {
-    for name, cfg in local.class_configs : name => merge(cfg, {
-      max_nodes = floor(var.monthly_budget_usd / (cfg.min_bid_price * local.hours_per_month))
-    }) if floor(var.monthly_budget_usd / (cfg.min_bid_price * local.hours_per_month)) >= local.min_nodes
+    for name, cfg in local.class_configs : name => cfg
+    if var.daily_budget_usd >= cfg.hourly_rate * local.hours_per_day * local.node_count
   }
 
-  # Select the largest server class (by vCPUs per node) that meets HA requirements
-  max_vcpus_per_node = length(local.valid_configs) > 0 ? max([for cfg in values(local.valid_configs) : cfg.vcpus]...) : 0
-  selected           = length(local.valid_configs) > 0 ? [for cfg in values(local.valid_configs) : cfg if cfg.vcpus == local.max_vcpus_per_node][0] : null
+  # Select the largest class (by vCPUs) we can afford
+  selected = length(local.valid_configs) > 0 ? [
+    for cfg in values(local.valid_configs) : cfg
+    if cfg.vcpus == max([for c in values(local.valid_configs) : c.vcpus]...)
+  ][0] : null
 
-  # Bid price: budget spread across nodes, but at least the minimum
-  # Must be a multiple of 0.005 (round down to nearest increment)
-  raw_bid_price = max(
-    local.selected.min_bid_price,
-    var.monthly_budget_usd / local.hours_per_month / local.selected.max_nodes
-  )
-  bid_price = floor(local.raw_bid_price / 0.005) * 0.005
+  # For error message: find cheapest option
+  cheapest_class = [for name, cfg in local.class_configs : name if cfg.hourly_rate == min([for c in values(local.class_configs) : c.hourly_rate]...)][0]
+  cheapest_daily = ceil(local.class_configs[local.cheapest_class].hourly_rate * local.hours_per_day * local.node_count)
+
+  # Bid price: round up to nearest 0.005 increment (Rackspace Spot requirement)
+  bid_price_step = 0.005
+  bid_price      = local.selected != null ? ceil(local.selected.hourly_rate / local.bid_price_step) * local.bid_price_step : 0
 }
 
 data "spot_serverclass" "candidates" {
@@ -57,17 +50,21 @@ resource "spot_cloudspace" "uds" {
   region           = "us-central-dfw-2"
   hacontrol_plane  = false
   wait_until_ready = true
+
+  lifecycle {
+    precondition {
+      condition     = local.selected != null
+      error_message = format("Budget of $%d USD/day is insufficient. The cheapest option (%s) requires ~$%d USD/day at current market prices.", var.daily_budget_usd, local.cheapest_class, local.cheapest_daily)
+    }
+  }
 }
 
 resource "spot_spotnodepool" "primary" {
-  cloudspace_name = resource.spot_cloudspace.uds.cloudspace_name
-  server_class    = local.selected.server_class
-  bid_price       = format("%.3f", local.bid_price)
-
-  autoscaling = {
-    min_nodes = local.min_nodes
-    max_nodes = local.selected.max_nodes
-  }
+  count                = local.selected != null ? 1 : 0
+  cloudspace_name      = resource.spot_cloudspace.uds.cloudspace_name
+  server_class         = local.selected.server_class
+  bid_price            = format("%.3f", local.bid_price)
+  desired_server_count = local.node_count
 }
 
 data "spot_kubeconfig" "uds" {

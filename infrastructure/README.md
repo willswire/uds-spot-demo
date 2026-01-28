@@ -7,36 +7,35 @@ Provision a Kubernetes cluster on [Rackspace Spot](https://spot.rackspace.com) u
 | Resource   | Description |
 |------------|-------------|
 | Cloudspace | Single control plane, Calico CNI, Gen-2 datacenter (`us-central-dfw-2`) |
-| Node Pool  | Gen-2 General Purpose spot instances, autoscaling (min 3 nodes for HA) |
+| Node Pool  | Gen-2 General Purpose spot instances, fixed 3 nodes for HA |
 
 ## Budget-Based Server Selection
 
-The infrastructure automatically selects the optimal server class based on your monthly budget.
+The infrastructure automatically selects the optimal server class based on your daily budget (default: $10 USD/day).
 
 ### How It Works
 
 1. **Candidate Classes**: Gen-2 General Purpose virtual servers (`gp.vs2.*-dfw2`)
 2. **Constraints**:
-   - Minimum 3 nodes (required for HA workloads)
-   - Bid price must meet or exceed the class minimum
-3. **Selection**: Choose the largest server class (most vCPUs per node) that meets HA requirements
+   - Fixed 3 nodes (required for HA workloads)
+   - Bid price must meet or exceed current market price
+3. **Selection**: Chooses the largest server class (most vCPUs per node) affordable within budget
 
-This approach favors larger nodes over more smaller nodes, which is better for workloads like UDS Core where components benefit from more memory and CPU per node.
+This approach favors larger nodes over many smaller nodes, which benefits workloads like UDS Core where components require more memory and CPU per node.
 
 ### Server Classes (as of January 2026)
 
-| Class | vCPUs | Memory | Min Bid ($/hr) |
-|-------|-------|--------|----------------|
-| `gp.vs2.medium-dfw2` | 2 | 3.75 GB | $0.01 |
-| `gp.vs2.large-dfw2` | 4 | 15 GB | $0.04 |
-| `gp.vs2.xlarge-dfw2` | 8 | 30 GB | $0.08 |
-| `gp.vs2.2xlarge-dfw2` | 16 | 60 GB | $0.15 |
+| Class | vCPUs | Memory | Min Bid |
+|-------|-------|--------|---------|
+| `gp.vs2.large-dfw2` | 4 | 15 GB | $0.04/hr |
+| `gp.vs2.xlarge-dfw2` | 8 | 30 GB | $0.08/hr |
+| `gp.vs2.2xlarge-dfw2` | 16 | 60 GB | $0.15/hr |
 
-For current pricing, see the [Rackspace Spot documentation](https://spot.rackspace.com/docs/en/cloud-servers).
+Market prices fluctuate and may exceed minimum bids. The required budget depends on current market conditions. For current pricing, see the [Rackspace Spot documentation](https://spot.rackspace.com/docs/en/cloud-servers).
 
 ## Setup
 
-1. Get an [API token](https://spot.rackspace.com/docs/en/deploy-your-cloudspace-via-terraform#obtain-the-access-token-from-the-spot-user-interface)
+1. Obtain an [API token](https://spot.rackspace.com/docs/en/deploy-your-cloudspace-via-terraform#obtain-the-access-token-from-the-spot-user-interface)
 
 2. Deploy:
    ```bash
@@ -48,7 +47,7 @@ For current pricing, see the [Rackspace Spot documentation](https://spot.rackspa
 
 3. Customize budget (optional):
    ```bash
-   tofu apply -var="monthly_budget_usd=100"
+   tofu apply -var="daily_budget_usd=15"
    ```
 
 4. Connect to cluster:
