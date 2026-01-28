@@ -19,6 +19,10 @@ This project provisions a Kubernetes cluster on Rackspace Spot and deploys a UDS
 - [OpenTofu](https://opentofu.org/) or Terraform
 - Rackspace Spot account with [API token](https://spot.rackspace.com/docs/en/deploy-your-cloudspace-via-terraform#obtain-the-access-token-from-the-spot-user-interface)
 
+## Infrastructure
+
+The infrastructure layer automatically selects the optimal Gen-2 server class based on your monthly budget. It maximizes total vCPUs while respecting minimum bid prices and HA requirements (3+ nodes). See [infrastructure/README.md](infrastructure/README.md) for details.
+
 ## Quick Start
 
 ### 1. Provision Infrastructure

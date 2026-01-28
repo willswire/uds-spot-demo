@@ -193,6 +193,13 @@ packages:
             - name: GRAFANA_PG_SSL_MODE
               description: Grafana postgresql SSL mode
               path: postgresql.ssl_mode
+      kube-prometheus-stack:
+        kube-prometheus-stack:
+          values:
+            # Rackspace Spot's block storage requires volumes between 5-20 GB
+            # See https://spot.rackspace.com/docs/en/persistent-volumes for more detail
+            - path: prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.resources.requests.storage
+              value: 15Gi
       velero:
         velero:
           values:
