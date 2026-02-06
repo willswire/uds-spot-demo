@@ -7,7 +7,7 @@ metadata:
 packages:
   - name: core
     repository: ghcr.io/defenseunicorns/packages/uds/core
-    ref: 0.59.1-upstream
+    ref: 0.60.1-upstream
     overrides:
       pepr-uds-core:
         module:
@@ -143,12 +143,12 @@ packages:
               path: "themeCustomizations.termsAndConditions.text.inline"
               default: ""
           values:
-            # Rackspace Spot's block storage requires volumes between 5-20 GB
+            # Rackspace Spot's ssdv2-performance volumes requires >= 10GB
             # See https://spot.rackspace.com/docs/en/persistent-volumes for more detail
             - path: persistence.themes.size
-              value: 5Gi
+              value: 10Gi
             - path: persistence.data.size
-              value: 5Gi
+              value: 10Gi
             - path: detailedObservability.alerts.enabled
               value: true
             - path: realmInitEnv
@@ -193,6 +193,13 @@ packages:
             - name: GRAFANA_PG_SSL_MODE
               description: Grafana postgresql SSL mode
               path: postgresql.ssl_mode
+      kube-prometheus-stack:
+        kube-prometheus-stack:
+          values:
+            # Rackspace Spot's ssdv2-performance volumes requires >= 10GB
+            # See https://spot.rackspace.com/docs/en/persistent-volumes for more detail
+            - path: prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.resources.requests.storage
+              value: 10Gi
       velero:
         velero:
           values:

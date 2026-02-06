@@ -1,3 +1,4 @@
 output "kubeconfig" {
-  value = data.spot_kubeconfig.uds.raw
+  value     = data.spot_kubeconfig.uds.raw
+  sensitive = true
 }

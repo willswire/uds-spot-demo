@@ -20,6 +20,7 @@ terraform.rc
 # macOS users are dumb
 .DS_Store
 tmp
+.env
 
 # UDS Bundles and Packages
 uds-*.tar.zst
