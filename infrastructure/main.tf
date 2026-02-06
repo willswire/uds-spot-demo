@@ -44,12 +44,17 @@ data "spot_serverclass" "candidates" {
   name     = each.key
 }
 
+resource "random_id" "cloudspace_suffix" {
+  byte_length = 4
+}
+
 resource "spot_cloudspace" "uds" {
-  cloudspace_name  = "uds"
-  cni              = "calico"
-  region           = "us-central-dfw-2"
-  hacontrol_plane  = false
-  wait_until_ready = true
+  cloudspace_name    = "uds-${random_id.cloudspace_suffix.hex}"
+  cni                = "calico"
+  region             = "us-central-dfw-2"
+  kubernetes_version = "1.33.0"
+  hacontrol_plane    = false
+  wait_until_ready   = true
 
   lifecycle {
     precondition {
